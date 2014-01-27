@@ -25,6 +25,33 @@ ExtensionInterfaceData __stdcall Nockback::GetExtensionData()
     
 bool __stdcall Nockback::HandleIncomingPacket(unsigned int uiSize, void* pData)
 {
+	uint16_t packetType = RBUFW(pData, 0) & 0x01FF;
+
+	if (packetType == 0x28)
+	{
+		IDataTools* dataTools = m_AshitaCore->GetDataModule()->GetDataTools();
+
+		uint8_t actionType = (uint8_t)(dataTools->unpackBitsBE((unsigned char*)pData, 82, 4));
+
+		if (actionType == 11)
+		{
+			uint8_t targetNum = RBUFB(pData, 0x09);
+			uint16_t startBit = 150;
+			for (int i = 0; i < targetNum; i++)
+			{
+				dataTools->packBitsBE((unsigned char*)pData, 0, startBit + 60, 3);
+				if (dataTools->unpackBitsBE((unsigned char*)pData, startBit + 121, 1) & 0x1)
+				{
+					startBit += 37;
+				}
+				if (dataTools->unpackBitsBE((unsigned char*)pData, startBit + 122, 1) & 0x1)
+				{
+					startBit += 34;
+				}
+				startBit += 123;
+			}
+		}
+	}
     return false;
 }
 
