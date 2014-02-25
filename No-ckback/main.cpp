@@ -59,7 +59,7 @@ bool __stdcall Nockback::HandleIncomingPacket(unsigned int uiSize, void* pData)
 __declspec( dllexport ) void __stdcall CreateExtensionData( ExtensionInterfaceData* Data )
 {
     ModuleData = Data;
-    ModuleData->ExtensionVersion        =        1.00;
+    ModuleData->ExtensionVersion        =        1.01;
     ModuleData->InterfaceVersion        =        INTERFACEVERSION;
     ModuleData->RequiresValadation      =        false;
     ModuleData->AutoloadConfiguration   =        false;
