@@ -1,3 +1,5 @@
+LIBRARY "No-ckback"
 EXPORTS
-	CreateExtensionData
-	CreateExtension
+    GetInterfaceVersion
+    CreatePluginData
+    CreatePlugin

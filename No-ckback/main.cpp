@@ -5,46 +5,42 @@
 #include <stdio.h>
 
 //do not delete this. Ashita will clean it up.
-ExtensionInterfaceData* ModuleData;
+PluginData* ModuleData;
 
-int __stdcall Nockback::Load(IAshitaCore* mAshitaCore, DWORD ExtensionID)
+bool Nockback::Initialize(IAshitaCore* ashitaCore, DWORD dwPluginId)
 {
-    m_AshitaCore = mAshitaCore;
+	m_AshitaCore = ashitaCore;
     
-    return 1;
+    return true;
 }
 
-void __stdcall Nockback::Unload()
+void Nockback::Release()
 {
 }
 
-ExtensionInterfaceData __stdcall Nockback::GetExtensionData()
+PluginData Nockback::GetPluginData()
 {
     return *ModuleData;
 }
     
-bool __stdcall Nockback::HandleIncomingPacket(unsigned int uiSize, void* pData)
+bool Nockback::HandleIncomingPacket(unsigned int uiPacketId, unsigned int uiPacketSize, void* lpRawData)
 {
-	uint16_t packetType = RBUFW(pData, 0) & 0x01FF;
-
-	if (packetType == 0x28)
+	if (uiPacketId == 0x28)
 	{
-		IDataTools* dataTools = m_AshitaCore->GetDataModule()->GetDataTools();
-
-		uint8_t actionType = (uint8_t)(dataTools->unpackBitsBE((unsigned char*)pData, 82, 4));
+		uint8_t actionType = (uint8_t)(unpackBitsBE((unsigned char*)lpRawData, 82, 4));
 
 		if (actionType == 11)
 		{
-			uint8_t targetNum = RBUFB(pData, 0x09);
+			uint8_t targetNum = RBUFB(lpRawData, 0x09);
 			uint16_t startBit = 150;
 			for (int i = 0; i < targetNum; i++)
 			{
-				dataTools->packBitsBE((unsigned char*)pData, 0, startBit + 60, 3);
-				if (dataTools->unpackBitsBE((unsigned char*)pData, startBit + 121, 1) & 0x1)
+				packBitsBE((unsigned char*)lpRawData, 0, startBit + 60, 3);
+				if (unpackBitsBE((unsigned char*)lpRawData, startBit + 121, 1) & 0x1)
 				{
 					startBit += 37;
 				}
-				if (dataTools->unpackBitsBE((unsigned char*)pData, startBit + 122, 1) & 0x1)
+				if (unpackBitsBE((unsigned char*)lpRawData, startBit + 122, 1) & 0x1)
 				{
 					startBit += 34;
 				}
@@ -55,21 +51,23 @@ bool __stdcall Nockback::HandleIncomingPacket(unsigned int uiSize, void* pData)
     return false;
 }
 
+__declspec(dllexport) double __stdcall GetInterfaceVersion(void)
+{
+	return ASHITA_INTERFACE_VERSION;
+}
 
-__declspec( dllexport ) void __stdcall CreateExtensionData( ExtensionInterfaceData* Data )
+__declspec(dllexport) void __stdcall CreatePluginData( PluginData* Data )
 {
     ModuleData = Data;
-    ModuleData->ExtensionVersion        =        1.02;
-    ModuleData->InterfaceVersion        =        INTERFACEVERSION;
-    ModuleData->RequiresValadation      =        false;
-    ModuleData->AutoloadConfiguration   =        false;
-    ModuleData->AutoloadLanguage        =        false;
+    ModuleData->PluginVersion       =        1.04;
+	ModuleData->InterfaceVersion	= ASHITA_INTERFACE_VERSION;
+	ModuleData->Priority = 0;
 
     strncpy_s( ModuleData->Name, "No-ckback", 256 );
     strncpy_s( ModuleData->Author, "kjLotus", 256 );
 }
 
-__declspec( dllexport ) IExtension* __stdcall CreateExtension( char* pszText )
+__declspec(dllexport) IPlugin* __stdcall CreatePlugin( char* pszText )
 {
-	return (IExtension*)new Nockback();
+	return (IPlugin*)new Nockback();
 }
