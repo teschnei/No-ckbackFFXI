@@ -59,7 +59,7 @@ __declspec(dllexport) double __stdcall GetInterfaceVersion(void)
 __declspec(dllexport) void __stdcall CreatePluginData( PluginData* Data )
 {
     ModuleData = Data;
-    ModuleData->PluginVersion       =        1.04;
+    ModuleData->PluginVersion       =        1.05;
 	ModuleData->InterfaceVersion	= ASHITA_INTERFACE_VERSION;
 	ModuleData->Priority = 0;
 

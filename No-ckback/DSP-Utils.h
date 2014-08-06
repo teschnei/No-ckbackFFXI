@@ -10,6 +10,8 @@
 #define WBUFL(p,pos) (*(uint32_t*)WBUFP((p),(pos)))
 #define WBUFF(p,pos) (*(float*)WBUFP((p),(pos)))
 
+#include <stdint.h>
+
 uint32_t packBitsBE(uint8_t* target, uint64_t value, int32_t byteOffset, int32_t bitOffset, uint8_t lengthInBit)
 {
 	byteOffset += (bitOffset >> 3);										//correct bitOffsets>=8
@@ -121,4 +123,97 @@ uint64_t unpackBitsBE(uint8_t* target, int32_t byteOffset, int32_t bitOffset, ui
 uint64_t unpackBitsBE(uint8_t* target, int32_t bitOffset, uint8_t lengthInBit)
 {
 	return unpackBitsBE(target, 0, bitOffset, lengthInBit);
+}
+
+uint32_t packBitsLE(uint8_t* target, uint64_t value, int32_t byteOffset, int32_t bitOffset, uint8_t lengthInBit)
+{
+	byteOffset += (bitOffset >> 3);													//correct bitOffsets >= 8
+	bitOffset %= 8;
+
+	uint8_t bytesNeeded;																//calculate how many bytes are needed
+	if ((bitOffset + lengthInBit) <= 8)
+		bytesNeeded = 1;
+	else if ((bitOffset + lengthInBit) <= 16)
+		bytesNeeded = 2;
+	else if ((bitOffset + lengthInBit) <= 32)
+		bytesNeeded = 4;
+	else if ((bitOffset + lengthInBit) <= 64)
+		bytesNeeded = 8;
+	else
+	{
+		//ShowError("Pack Bits Error: packBitsLE(...) not implemented for targetsizes above 64 bits.\n Targetsize: %d\n", (lengthInBit + bitOffset));
+		return 0;
+	}
+
+	uint8_t* modifiedTarget = new uint8_t[bytesNeeded];									//convert byteOrder to Big Endian
+
+	for (uint8_t curByte = 0; curByte < bytesNeeded; ++curByte)
+	{
+		modifiedTarget[curByte] = target[byteOffset + (bytesNeeded - 1) - curByte];
+	}
+
+	int32_t newBitOffset = (bytesNeeded << 3) - (bitOffset + lengthInBit); 			//calculate new bitOffset
+
+	packBitsBE(&modifiedTarget[0], value, 0, newBitOffset, lengthInBit);			//write data to modified array
+
+	for (uint8_t curByte = 0; curByte < bytesNeeded; ++curByte)						//copy back to target
+	{
+		target[byteOffset + (bytesNeeded - 1) - curByte] = modifiedTarget[curByte];
+	}
+
+	if (modifiedTarget) delete[] modifiedTarget;
+	return ((byteOffset << 3) + bitOffset + lengthInBit);
+}
+
+uint32_t packBitsLE(uint8_t* target, uint64_t value, int32_t bitOffset, uint8_t lengthInBit)
+{
+	return packBitsLE(target, value, 0, bitOffset, lengthInBit);
+}
+
+uint64_t unpackBitsLE(uint8_t* target, int32_t byteOffset, int32_t bitOffset, uint8_t lengthInBit)
+{
+	byteOffset += (bitOffset >> 3);
+	bitOffset %= 8;
+
+	uint8_t bytesNeeded;
+	if ((bitOffset + lengthInBit) <= 8)
+		bytesNeeded = 1;
+	else if ((bitOffset + lengthInBit) <= 16)
+		bytesNeeded = 2;
+	else if ((bitOffset + lengthInBit) <= 32)
+		bytesNeeded = 4;
+	else if ((bitOffset + lengthInBit) <= 64)
+		bytesNeeded = 8;
+	else
+	{
+		//ShowError("Unpack Bits Error: packBitsLE(...) not implemented for targetsizes above 64 bits.\n Targetsize: %d\n", (lengthInBit + bitOffset));
+		return 0;
+	}
+
+	uint64_t retVal;
+
+	uint8_t* modifiedTarget = new uint8_t[bytesNeeded];
+
+	for (uint8_t curByte = 0; curByte < bytesNeeded; ++curByte)
+	{
+		modifiedTarget[curByte] = target[byteOffset + (bytesNeeded - 1) - curByte];
+	}
+	if (bytesNeeded == 1)
+	{
+		uint8_t bitmask = 0xFF >> bitOffset;
+		retVal = (modifiedTarget[0] & bitmask) >> (8 - (lengthInBit + bitOffset));
+	}
+	else
+	{
+		int32_t newBitOffset = (bytesNeeded * 8) - (bitOffset + lengthInBit);
+		retVal = unpackBitsBE(&modifiedTarget[0], 0, newBitOffset, lengthInBit);
+	}
+
+	if (modifiedTarget) delete[]modifiedTarget;
+	return retVal;
+}
+
+uint64_t unpackBitsLE(uint8_t* target, int32_t bitOffset, uint8_t lengthInBit)
+{
+	return unpackBitsLE(target, 0, bitOffset, lengthInBit);
 }
